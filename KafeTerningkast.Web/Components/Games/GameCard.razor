@@ -1,4 +1,5 @@
 @using KafeTerningkast.Models
+@using KafeTerningkast.Web.Components.Games
 
 <article class="card h-100">
     <div class="card-body">
@@ -8,7 +9,7 @@
         <p><strong>Spillere:</strong> @Game.MinPlayers–@Game.MaxPlayers</p>
         <p><strong>Spilletid:</strong> @Game.PlayTimeMinutes minutter</p>
         <p><strong>Kategori:</strong> @Game.Category</p>
-        <p><strong>Terningkast:</strong> @Game.Rating</p>
+        <p><strong>Terningkast:</strong> <DiceRating Value="@Game.Rating" ReadOnly="true" /></p>
     </div>
 </article>
 

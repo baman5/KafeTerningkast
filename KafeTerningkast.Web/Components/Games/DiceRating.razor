@@ -1,0 +1,62 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="d-flex align-items-center gap-1" role="group" aria-label="Terningkast">
+    @if (ReadOnly)
+    {
+        <span aria-label="@GetDescription(Value)">
+            @GetDieFace(Value)
+        </span>
+    }
+    else
+    {
+        @for (var number = 1; number <= 6; number++)
+        {
+            var rating = number;
+
+            <button type="button"
+                    class="btn btn-sm @(Value == rating ? "btn-primary" : "btn-outline-secondary")"
+                    aria-label="@($"Gi terningkast {rating}")"
+                    aria-pressed="@(Value == rating ? "true" : "false")"
+                    @onclick="() => SelectValueAsync(rating)">
+                @GetDieFace(rating)
+            </button>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public int Value { get; set; }
+
+    [Parameter]
+    public EventCallback<int> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    private async Task SelectValueAsync(int value)
+    {
+        if (ReadOnly || value < 1 || value > 6)
+        {
+            return;
+        }
+
+        await ValueChanged.InvokeAsync(value);
+    }
+
+    private static string GetDieFace(int value) => value switch
+    {
+        1 => "⚀",
+        2 => "⚁",
+        3 => "⚂",
+        4 => "⚃",
+        5 => "⚄",
+        6 => "⚅",
+        _ => "—"
+    };
+
+    private static string GetDescription(int value) =>
+        value is >= 1 and <= 6
+            ? $"Terningkast {value} av 6"
+            : $"Ugyldig terningkast: {value}";
+}
