@@ -1,0 +1,18 @@
+@using KafeTerningkast.Models
+
+<article class="card h-100">
+    <div class="card-body">
+        <h2 class="card-title h5">@Game.Name</h2>
+        <p class="card-text">@Game.Description</p>
+
+        <p><strong>Spillere:</strong> @Game.MinPlayers–@Game.MaxPlayers</p>
+        <p><strong>Spilletid:</strong> @Game.PlayTimeMinutes minutter</p>
+        <p><strong>Kategori:</strong> @Game.Category</p>
+        <p><strong>Terningkast:</strong> @Game.Rating</p>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public BoardGame Game { get; set; } = default!;
+}

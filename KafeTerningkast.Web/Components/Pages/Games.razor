@@ -1,0 +1,86 @@
+@page "/games"
+@using KafeTerningkast.Data
+@using KafeTerningkast.Models
+
+<PageTitle>Spillhylla</PageTitle>
+
+<h1>Spillhylla</h1>
+
+<div class="mb-3">
+    <label for="game-search" class="form-label">Søk etter spill</label>
+    <input id="game-search"
+           class="form-control"
+           type="search"
+           @bind="searchText"
+           @bind:event="oninput"
+           placeholder="Skriv et spillnavn" />
+</div>
+
+<div class="mb-3">
+    <label for="player-count" class="form-label">Antall spillere</label>
+    <input id="player-count"
+           class="form-control"
+           type="number"
+           min="1"
+           @bind="playerCount"
+           @bind:event="oninput"
+           placeholder="Alle antall" />
+</div>
+
+@{
+    var visibleGames = FilteredGames;
+}
+
+<p>@visibleGames.Count spill funnet</p>
+
+<button class="btn btn-primary mb-3"
+        @onclick="RollDice"
+        disabled="@(visibleGames.Count == 0)">
+    Trill terningen
+</button>
+
+@if (visibleGames.Count == 0)
+{
+    <p>Ingen spill passer til søket eller filteret.</p>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+        @foreach (var game in visibleGames)
+        {
+            <div class="col">
+                <div class="@(selectedGame?.Id == game.Id
+                                  ? "border border-warning border-3 rounded h-100"
+                                  : "h-100")">
+                    <GameCard Game="game" />
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private string searchText = string.Empty;
+    private int? playerCount;
+    private BoardGame? selectedGame;
+    private readonly Random random = new();
+
+    private List<BoardGame> FilteredGames =>
+        GameData.Games
+            .Where(game =>
+                (string.IsNullOrWhiteSpace(searchText) ||
+                 game.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
+                (!playerCount.HasValue ||
+                 (playerCount.Value >= game.MinPlayers &&
+                  playerCount.Value <= game.MaxPlayers)))
+            .ToList();
+
+    private void RollDice()
+    {
+        var games = FilteredGames;
+
+        selectedGame = games.Count == 0
+            ? null
+            : games[random.Next(games.Count)];
+    }
+}
