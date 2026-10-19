@@ -1,0 +1,47 @@
+@page "/games/{Id:int}"
+@using System.Linq
+@using Microsoft.AspNetCore.Components
+@using KafeTerningkast.Data
+@using KafeTerningkast.Models
+@using KafeTerningkast.Web.Components.Games
+@inject NavigationManager Navigation
+
+<PageTitle>@(game?.Name ?? "Spilldetaljer")</PageTitle>
+
+@if (game is null)
+{
+    <h1>Spillet ble ikke funnet</h1>
+    <p>Det finnes ikke et spill med ID @Id.</p>
+    <button class="btn btn-secondary" @onclick="BackToGames">Tilbake til spillhylla</button>
+}
+else
+{
+    <h1>@game.Name</h1>
+    <p>@game.Description</p>
+    <p><strong>Spillere:</strong> @game.MinPlayers–@game.MaxPlayers</p>
+    <p><strong>Spilletid:</strong> @game.PlayTimeMinutes minutter</p>
+    <p><strong>Kategori:</strong> @game.Category</p>
+    <p><strong>Terningkast:</strong></p>
+    
+    <DiceRating @bind-Value="currentRating" />
+    <p>Valgt terningkast: @currentRating av 6</p>
+    <button class="btn btn-secondary mt-3" @onclick="BackToGames">Tilbake til spillhylla</button>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private BoardGame? game;
+    private int currentRating;
+
+    protected override void OnParametersSet()
+    {
+        game = GameData.Games.FirstOrDefault(candidate => candidate.Id == Id);
+        currentRating = game?.Rating ?? 1;
+    }
+
+    private void BackToGames()
+    {
+        Navigation.NavigateTo("/games");
+    }
+}
