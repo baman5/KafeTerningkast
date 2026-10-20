@@ -2,6 +2,8 @@ using KafeTerningkast.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddScoped<KafeTerningkast.Web.Services.GameNightService>();
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

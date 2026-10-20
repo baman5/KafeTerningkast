@@ -1,0 +1,51 @@
+@page "/game-night"
+@inject KafeTerningkast.Web.Services.GameNightService GameNightService
+
+<PageTitle>Min spillekveld</PageTitle>
+
+<h1>Min spillekveld</h1>
+
+@if (GameNightService.Games.Count == 0)
+{
+    <p>Du har ikke lagt til noen spill enda.</p>
+}
+else
+{
+    <p>Antall spill: @GameNightService.Games.Count</p>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+        @foreach (var game in GameNightService.Games)
+        {
+            <div class="col" @key="game.Id">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h2 class="card-title h5">@game.Name</h2>
+                        <p class="card-text">@game.Description</p>
+
+                        <p>
+                            <strong>Spillere:</strong>
+                            @game.MinPlayers–@game.MaxPlayers
+                        </p>
+
+                        <p>
+                            <strong>Spilletid:</strong>
+                            @game.PlayTimeMinutes minutter
+                        </p>
+
+                        <button class="btn btn-outline-danger"
+                                @onclick="() => RemoveGame(game.Id)">
+                            Fjern fra spillekveld
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private void RemoveGame(int gameId)
+    {
+        GameNightService.RemoveGame(gameId);
+    }
+}
