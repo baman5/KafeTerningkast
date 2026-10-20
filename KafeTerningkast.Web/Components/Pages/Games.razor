@@ -60,7 +60,12 @@ else
                 <div class="@(selectedGame?.Id == game.Id
                                   ? "border border-warning border-3 rounded h-100"
                                   : "h-100")">
-                    <GameCard Game="@game" OnAddToGameNight="ShowAddConfirmation" />
+                
+                <GameCard Game="@game"
+                    IsSelected="@GameNightService.Games.Any(selectedGame => selectedGame.Id == game.Id)"
+                    OnAddToGameNight="ShowAddConfirmation"
+                    OnRemoveFromGameNight="RemoveFromGameNight" />
+                
                 </div>
             </div>
         }
@@ -93,12 +98,18 @@ else
             : games[random.Next(games.Count)];
     }
 
-private void ShowAddConfirmation(BoardGame game)
-{
-    bool added = GameNightService.AddGame(game);
+    private void ShowAddConfirmation(BoardGame game)
+    {
+        bool added = GameNightService.AddGame(game);
 
-    addConfirmation = added
-        ? $"{game.Name} er lagt til i spillekvelden."
-        : $"{game.Name} ligger allerede i spillekvelden.";
-}
+        addConfirmation = added
+            ? $"{game.Name} er lagt til i spillekvelden."
+            : $"{game.Name} ligger allerede i spillekvelden.";
+    }
+
+    private void RemoveFromGameNight(BoardGame game)
+    {
+        GameNightService.RemoveGame(game.Id);
+        addConfirmation = $"{game.Name} er fjernet fra spillekvelden.";
+    }
 }

@@ -5,6 +5,7 @@
 @using KafeTerningkast.Models
 @using KafeTerningkast.Web.Components.Games
 @inject NavigationManager Navigation
+@inject KafeTerningkast.Web.Services.GameNightService GameNightService
 
 <PageTitle>@(game?.Name ?? "Spilldetaljer")</PageTitle>
 
@@ -25,6 +26,19 @@ else
     
     <DiceRating @bind-Value="currentRating" />
     <p>Valgt terningkast: @currentRating av 6</p>
+    @if (IsInGameNight)
+    {
+        <button class="btn btn-outline-danger mt-2"@onclick="RemoveFromGameNight">Fjern fra spillekveld</button>
+    }
+    else
+    {
+        <button class="btn btn-success mt-2"@onclick="AddToGameNight">Legg til i spillekveld</button>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(gameNightMessage))
+    {
+        <p class="mt-2" role="status">@gameNightMessage</p>
+    }
     <button class="btn btn-secondary mt-3" @onclick="BackToGames">Tilbake til spillhylla</button>
 }
 
@@ -33,6 +47,12 @@ else
     public int Id { get; set; }
     private BoardGame? game;
     private int currentRating;
+
+    private string? gameNightMessage;
+
+    private bool IsInGameNight =>
+        game is not null &&
+        GameNightService.Games.Any(selectedGame => selectedGame.Id == game.Id);
 
     protected override void OnParametersSet()
     {
@@ -43,5 +63,29 @@ else
     private void BackToGames()
     {
         Navigation.NavigateTo("/games");
+    }
+    private void AddToGameNight()
+    {
+        if (game is null)
+        {
+            return;
+        }
+
+        bool added = GameNightService.AddGame(game);
+
+        gameNightMessage = added
+            ? $"{game.Name} er lagt til i spillekvelden."
+            : $"{game.Name} ligger allerede i spillekvelden.";
+    }
+
+    private void RemoveFromGameNight()
+    {
+        if (game is null)
+        {
+            return;
+        }
+
+        GameNightService.RemoveGame(game.Id);
+        gameNightMessage = $"{game.Name} er fjernet fra spillekvelden.";
     }
 }
