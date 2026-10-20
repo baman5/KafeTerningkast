@@ -10,10 +10,20 @@
         <p><strong>Kategori:</strong> @Game.Category</p>
         <p><strong>Terningkast:</strong> <DiceRating Value="@Game.Rating" ReadOnly="true" /></p>
         <a class="btn btn-outline-primary" href="@($"/games/{Game.Id}")">Se detaljer</a>
+        <button type="button" class="btn btn-success mt-2" @onclick="NotifyParentAsync"> Legg til i spillekveld
+</button>
     </div>
 </article>
 
 @code {
     [Parameter, EditorRequired]
     public BoardGame Game { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<BoardGame> OnAddToGameNight { get; set; }
+
+    private Task NotifyParentAsync()
+    {
+        return OnAddToGameNight.InvokeAsync(Game);
+    }
 }

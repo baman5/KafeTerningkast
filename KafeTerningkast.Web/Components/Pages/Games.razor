@@ -33,10 +33,16 @@
 
 <p>@visibleGames.Count spill funnet</p>
 
+@if (!string.IsNullOrWhiteSpace(addConfirmation))
+{
+    <div class="alert alert-success" role="status">
+        @addConfirmation
+    </div>
+}
+
 <button class="btn btn-primary mb-3"
         @onclick="RollDice"
-        disabled="@(visibleGames.Count == 0)">
-    Trill terningen
+        disabled="@(visibleGames.Count == 0)"> Trill terningen
 </button>
 
 @if (visibleGames.Count == 0)
@@ -52,7 +58,7 @@ else
                 <div class="@(selectedGame?.Id == game.Id
                                   ? "border border-warning border-3 rounded h-100"
                                   : "h-100")">
-                    <GameCard Game="game" />
+                    <GameCard Game="@game" OnAddToGameNight="ShowAddConfirmation" />
                 </div>
             </div>
         }
@@ -64,6 +70,7 @@ else
     private int? playerCount;
     private BoardGame? selectedGame;
     private readonly Random random = new();
+    private string? addConfirmation;
 
     private List<BoardGame> FilteredGames =>
         GameData.Games
@@ -83,4 +90,9 @@ else
             ? null
             : games[random.Next(games.Count)];
     }
+
+    private void ShowAddConfirmation(BoardGame game)
+{
+    addConfirmation = $"{game.Name} er valgt til spillekvelden.";
+}
 }
