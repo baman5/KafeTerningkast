@@ -1,4 +1,8 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using System
+@implements IDisposable
+@inject KafeTerningkast.Web.Services.GameNightService GameNightService
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">KafeTerningkast.Web</a>
     </div>
@@ -24,8 +28,26 @@
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="/game-night">
                 Min spillekveld
+                <span class="badge bg-primary ms-2">@GameNightService.Games.Count</span>
             </NavLink>
         </div>
 
     </nav>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        GameNightService.Changed += HandleGameNightChanged;
+    }
+
+    private void HandleGameNightChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        GameNightService.Changed -= HandleGameNightChanged;
+    }
+}

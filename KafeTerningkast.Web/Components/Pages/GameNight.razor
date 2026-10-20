@@ -1,9 +1,13 @@
 @page "/game-night"
+@using System.Linq
 @inject KafeTerningkast.Web.Services.GameNightService GameNightService
 
 <PageTitle>Min spillekveld</PageTitle>
 
 <h1>Min spillekveld</h1>
+
+<p>Antall spill: @GameNightService.Games.Count</p>
+<p>Samlet spilletid: @GameNightService.Games.Sum(game => game.PlayTimeMinutes) minutter</p>
 
 @if (GameNightService.Games.Count == 0)
 {
@@ -11,8 +15,6 @@
 }
 else
 {
-    <p>Antall spill: @GameNightService.Games.Count</p>
-
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
         @foreach (var game in GameNightService.Games)
         {
