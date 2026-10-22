@@ -5,6 +5,7 @@ using KafeTerningkast.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<KafeTerningkast.Web.Services.GameNightService>();
+builder.Services.AddHttpClient<KafeTerningkast.Web.Services.GameApiClient>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -93,6 +94,21 @@ app.MapPut("/api/games/{id:int}", (int id, BoardGame updatedGame) =>
     existingGame.Category = updatedGame.Category;
     existingGame.Rating = updatedGame.Rating;
     existingGame.Description = updatedGame.Description;
+
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/games/{id:int}", (int id) =>
+{
+    var game = GameData.Games
+        .FirstOrDefault(game => game.Id == id);
+
+    if (game is null)
+    {
+        return Results.NotFound("Fant ikke spillet.");
+    }
+
+    GameData.Games.Remove(game);
 
     return Results.NoContent();
 });
