@@ -1,0 +1,334 @@
+@page "/admin/games"
+@using KafeTerningkast.Models
+@using Microsoft.AspNetCore.Components.Forms
+@inject KafeTerningkast.Web.Services.GameApiClient Api
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<PageTitle>Administrer spill</PageTitle>
+
+<h1>Administrer spill</h1>
+
+<h2>@(editingGameId.HasValue ? "Rediger spill" : "Legg til nytt spill")</h2>
+
+<EditForm Model="@newGame" OnValidSubmit="SaveGameAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="game-name" class="form-label">Navn</label>
+        <InputText id="game-name"
+                   class="form-control"
+                   @bind-Value="newGame.Name" />
+        <ValidationMessage For="@(() => newGame.Name)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="game-category" class="form-label">Kategori</label>
+        <InputText id="game-category"
+                   class="form-control"
+                   @bind-Value="newGame.Category" />
+    </div>
+
+    <div class="mb-3">
+        <label for="game-min-players" class="form-label">Minste antall spillere</label>
+        <InputNumber id="game-min-players"
+                     class="form-control"
+                     min="1"
+                     @bind-Value="newGame.MinPlayers" />
+        <ValidationMessage For="@(() => newGame.MinPlayers)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="game-max-players" class="form-label">Største antall spillere</label>
+        <InputNumber id="game-max-players"
+                     class="form-control"
+                     min="1"
+                     @bind-Value="newGame.MaxPlayers" />
+        <ValidationMessage For="@(() => newGame.MaxPlayers)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="game-play-time" class="form-label">Spilletid i minutter</label>
+        <InputNumber id="game-play-time"
+                     class="form-control"
+                     min="1"
+                     @bind-Value="newGame.PlayTimeMinutes" />
+        <ValidationMessage For="@(() => newGame.PlayTimeMinutes)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="game-rating" class="form-label">Terningkast</label>
+        <InputSelect id="game-rating"
+                     class="form-select"
+                     @bind-Value="newGame.Rating">
+            @for (int rating = 1; rating <= 6; rating++)
+            {
+                <option value="@rating">@rating</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="@(() => newGame.Rating)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="game-description" class="form-label">Beskrivelse</label>
+        <InputTextArea id="game-description"
+                       class="form-control"
+                       @bind-Value="newGame.Description" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@isSaving">
+        @(isSaving
+            ? "Lagrer..."
+            : editingGameId.HasValue
+                ? "Lagre endringer"
+                : "Legg til spill")
+    </button>
+
+    @if (editingGameId.HasValue)
+    {
+        <button type="button"
+                class="btn btn-secondary ms-2"
+                @onclick="CancelEdit"
+                disabled="@isSaving">
+            Avbryt
+        </button>
+    }
+</EditForm>
+
+@if (formMessage is not null)
+{
+    <p class="alert @formMessageClass mt-3">@formMessage</p>
+}
+
+@if (isLoading)
+{
+    <p>Henter spill...</p>
+}
+else if (errorMessage is not null)
+{
+    <p class="alert alert-danger">@errorMessage</p>
+}
+else if (games.Count == 0)
+{
+    <p>Ingen spill ble funnet.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Navn</th>
+                <th>Kategori</th>
+                <th>Spillere</th>
+                <th>Spilletid</th>
+                <th>Terningkast</th>
+                <th>Handlinger</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var game in games)
+            {
+                <tr>
+                    <td>@game.Name</td>
+                    <td>@game.Category</td>
+                    <td>@game.MinPlayers–@game.MaxPlayers</td>
+                    <td>@game.PlayTimeMinutes minutter</td>
+                    <td>@game.Rating / 6</td>
+                    <td>
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                @onclick="() => DeleteGameAsync(game.Id)"
+                                disabled="@isDeleting">
+                            @(isDeleting ? "Sletter..." : "Slett")
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-outline-primary btn-sm ms-2"
+                                @onclick="() => StartEditing(game)">
+                            Rediger
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<BoardGame> games = new();
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    private BoardGame newGame = new()
+    {
+        Name = string.Empty,
+        Category = string.Empty,
+        Description = string.Empty,
+        MinPlayers = 2,
+        MaxPlayers = 4,
+        PlayTimeMinutes = 60,
+        Rating = 3
+    };
+
+    private bool isSaving;
+    private string? formMessage;
+    private string formMessageClass = "alert-success";
+    private bool isDeleting;
+    private int? editingGameId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            games = await Api.GetAllAsync();
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Kunne ikke hente spill fra API-et.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void StartEditing(BoardGame game)
+    {
+        editingGameId = game.Id;
+
+        newGame = new BoardGame
+        {
+            Name = game.Name,
+            Category = game.Category,
+            Description = game.Description,
+            MinPlayers = game.MinPlayers,
+            MaxPlayers = game.MaxPlayers,
+            PlayTimeMinutes = game.PlayTimeMinutes,
+            Rating = game.Rating
+        };
+
+        formMessage = null;
+    }
+
+    private void CancelEdit()
+    {
+        editingGameId = null;
+
+        newGame = new BoardGame
+        {
+            Name = string.Empty,
+            Category = string.Empty,
+            Description = string.Empty,
+            MinPlayers = 2,
+            MaxPlayers = 4,
+            PlayTimeMinutes = 60,
+            Rating = 3
+        };
+
+        formMessage = null;
+    }
+
+    private async Task SaveGameAsync()
+    {
+        formMessage = null;
+
+        bool isInvalid =
+            string.IsNullOrWhiteSpace(newGame.Name) ||
+            newGame.MinPlayers < 1 ||
+            newGame.MaxPlayers < newGame.MinPlayers ||
+            newGame.PlayTimeMinutes <= 0 ||
+            newGame.Rating < 1 ||
+            newGame.Rating > 6;
+
+        if (isInvalid)
+        {
+            formMessageClass = "alert-danger";
+            formMessage = "Kontroller at spillverdiene er gyldige.";
+            return;
+        }
+
+        isSaving = true;
+
+        try
+        {
+            string savedName = newGame.Name;
+
+            if (editingGameId.HasValue)
+            {
+                await Api.UpdateAsync(editingGameId.Value, newGame);
+                formMessage = $"{savedName} ble oppdatert.";
+            }
+            else
+            {
+                await Api.CreateAsync(newGame);
+                formMessage = $"{savedName} ble lagt til.";
+            }
+
+            games = await Api.GetAllAsync();
+            editingGameId = null;
+
+            newGame = new BoardGame
+            {
+                Name = string.Empty,
+                Category = string.Empty,
+                Description = string.Empty,
+                MinPlayers = 2,
+                MaxPlayers = 4,
+                PlayTimeMinutes = 60,
+                Rating = 3
+            };
+
+            formMessageClass = "alert-success";
+        }
+        catch (HttpRequestException)
+        {
+            formMessageClass = "alert-danger";
+            formMessage = "Kunne ikke lagre endringene via API-et.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteGameAsync(int gameId)
+    {
+        var game = games.FirstOrDefault(candidate => candidate.Id == gameId);
+
+        if (game is null)
+        {
+            return;
+        }
+
+        bool confirmed = await JS.InvokeAsync<bool>(
+            "confirm",
+            $"Er du sikker på at du vil slette {game.Name}?"
+        );
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        isDeleting = true;
+        formMessage = null;
+
+        try
+        {
+            await Api.DeleteAsync(gameId);
+            games.RemoveAll(candidate => candidate.Id == gameId);
+
+            formMessageClass = "alert-success";
+            formMessage = $"{game.Name} ble slettet.";
+        }
+        catch (HttpRequestException)
+        {
+            formMessageClass = "alert-danger";
+            formMessage = "Kunne ikke slette spillet via API-et.";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+}

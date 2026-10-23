@@ -1,78 +1,99 @@
 @page "/games"
+@using System.Net.Http
 @using KafeTerningkast.Web.Components.Games
-@using KafeTerningkast.Data
 @using KafeTerningkast.Models
 @inject KafeTerningkast.Web.Services.GameNightService GameNightService
+@inject KafeTerningkast.Web.Services.GameApiClient Api
 
 <PageTitle>Spillhylla</PageTitle>
 
 <h1>Spillhylla</h1>
 
-<div class="mb-3">
-    <label for="game-search" class="form-label">Søk etter spill</label>
-    <input id="game-search"
-           class="form-control"
-           type="search"
-           @bind="searchText"
-           @bind:event="oninput"
-           placeholder="Skriv et spillnavn" />
-</div>
-
-<div class="mb-3">
-    <label for="player-count" class="form-label">Antall spillere</label>
-    <input id="player-count"
-           class="form-control"
-           type="number"
-           min="1"
-           @bind="playerCount"
-           @bind:event="oninput"
-           placeholder="Alle antall" />
-</div>
-
 @{
     var visibleGames = FilteredGames;
 }
 
-<p>@visibleGames.Count spill funnet</p>
-
-@if (!string.IsNullOrWhiteSpace(addConfirmation))
+@if (isLoading)
 {
-    <div class="alert alert-success" role="status">
-        @addConfirmation
+    <p>Henter spill...</p>
+}
+else if (errorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
     </div>
 }
-
-<button class="btn btn-primary mb-3"
-        @onclick="RollDice"
-        disabled="@(visibleGames.Count == 0)"> Trill terningen
-</button>
-
-@if (visibleGames.Count == 0)
+else if (games.Count == 0)
 {
-    <p>Ingen spill passer til søket eller filteret.</p>
+    <p>Spillsamlingen er tom.</p>
 }
 else
 {
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-        @foreach (var game in visibleGames)
-        {
-            <div class="col">
-                <div class="@(selectedGame?.Id == game.Id
-                                  ? "border border-warning border-3 rounded h-100"
-                                  : "h-100")">
-                
-                <GameCard Game="@game"
-                    IsSelected="@GameNightService.Games.Any(selectedGame => selectedGame.Id == game.Id)"
-                    OnAddToGameNight="ShowAddConfirmation"
-                    OnRemoveFromGameNight="RemoveFromGameNight" />
-                
-                </div>
-            </div>
-        }
+    <div class="mb-3">
+        <label for="game-search" class="form-label">Søk etter spill</label>
+        <input id="game-search"
+               class="form-control"
+               type="search"
+               @bind="searchText"
+               @bind:event="oninput"
+               placeholder="Skriv et spillnavn" />
     </div>
+
+    <div class="mb-3">
+        <label for="player-count" class="form-label">Antall spillere</label>
+        <input id="player-count"
+               class="form-control"
+               type="number"
+               min="1"
+               @bind="playerCount"
+               @bind:event="oninput"
+               placeholder="Alle antall" />
+    </div>
+
+    <p>@visibleGames.Count spill funnet</p>
+
+    @if (!string.IsNullOrWhiteSpace(addConfirmation))
+    {
+        <div class="alert alert-success" role="status">
+            @addConfirmation
+        </div>
+    }
+
+    <button class="btn btn-primary mb-3"
+            @onclick="RollDice"
+            disabled="@(visibleGames.Count == 0)">
+        Trill terningen
+    </button>
+
+    @if (visibleGames.Count == 0)
+    {
+        <p>Ingen spill passer til søket eller filteret.</p>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+            @foreach (var game in visibleGames)
+            {
+                <div class="col">
+                    <div class="@(selectedGame?.Id == game.Id
+                                      ? "border border-warning border-3 rounded h-100"
+                                      : "h-100")">
+                        <GameCard Game="@game"
+                                  IsSelected="@GameNightService.Games.Any(nightGame => nightGame.Id == game.Id)"
+                                  OnAddToGameNight="ShowAddConfirmation"
+                                  OnRemoveFromGameNight="RemoveFromGameNight" />
+                    </div>
+                </div>
+            }
+        </div>
+    }
 }
 
 @code {
+    private List<BoardGame> games = new();
+    private bool isLoading = true;
+    private string? errorMessage;
+
     private string searchText = string.Empty;
     private int? playerCount;
     private BoardGame? selectedGame;
@@ -80,7 +101,7 @@ else
     private string? addConfirmation;
 
     private List<BoardGame> FilteredGames =>
-        GameData.Games
+        games
             .Where(game =>
                 (string.IsNullOrWhiteSpace(searchText) ||
                  game.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
@@ -89,13 +110,29 @@ else
                   playerCount.Value <= game.MaxPlayers)))
             .ToList();
 
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            games = await Api.GetAllAsync();
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Kunne ikke hente spill fra API-et.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
     private void RollDice()
     {
-        var games = FilteredGames;
+        var filteredGames = FilteredGames;
 
-        selectedGame = games.Count == 0
+        selectedGame = filteredGames.Count == 0
             ? null
-            : games[random.Next(games.Count)];
+            : filteredGames[random.Next(filteredGames.Count)];
     }
 
     private void ShowAddConfirmation(BoardGame game)
